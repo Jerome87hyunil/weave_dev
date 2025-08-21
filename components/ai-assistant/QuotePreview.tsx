@@ -175,46 +175,85 @@ export default function QuotePreview({ content, title = '견적서', onPrint, on
       // 복제된 요소 생성 (원본 요소를 수정하지 않기 위해)
       const clonedElement = element.cloneNode(true) as HTMLElement;
       
-      // lab() 색상을 처리하기 위한 함수
+      // lab() 색상을 처리하기 위한 함수 (html2canvas 호환성)
       const convertLabColors = (el: HTMLElement) => {
+        // 먼저 엘리먼트 자체 처리
+        const processElement = (htmlElem: HTMLElement) => {
+          try {
+            const computedStyle = window.getComputedStyle(htmlElem);
+            
+            // CSS 속성별로 lab() 색상 확인 및 변환
+            const properties = [
+              'backgroundColor',
+              'color', 
+              'borderColor',
+              'borderTopColor',
+              'borderRightColor', 
+              'borderBottomColor',
+              'borderLeftColor',
+              'outlineColor',
+              'textDecorationColor',
+              'fill',
+              'stroke'
+            ];
+            
+            properties.forEach(prop => {
+              const value = computedStyle.getPropertyValue(prop.replace(/([A-Z])/g, '-$1').toLowerCase());
+              if (value && (value.includes('lab') || value.includes('lch') || value.includes('oklch'))) {
+                // Tailwind 클래스 기반 색상 매핑
+                const className = htmlElem.className || '';
+                let newColor = '#000000';
+                
+                if (prop.includes('background')) {
+                  if (className.includes('blue-50')) newColor = '#eff6ff';
+                  else if (className.includes('blue-100')) newColor = '#dbeafe';
+                  else if (className.includes('blue-500')) newColor = '#3b82f6';
+                  else if (className.includes('blue-600')) newColor = '#2563eb';
+                  else if (className.includes('gray-50')) newColor = '#f9fafb';
+                  else if (className.includes('gray-100')) newColor = '#f3f4f6';
+                  else if (className.includes('gray-200')) newColor = '#e5e7eb';
+                  else newColor = '#ffffff';
+                } else if (prop.includes('color') || prop === 'fill' || prop === 'stroke') {
+                  if (className.includes('blue-600')) newColor = '#2563eb';
+                  else if (className.includes('blue-700')) newColor = '#1d4ed8';
+                  else if (className.includes('blue-800')) newColor = '#1e40af';
+                  else if (className.includes('gray-600')) newColor = '#4b5563';
+                  else if (className.includes('gray-700')) newColor = '#374151';
+                  else if (className.includes('gray-800')) newColor = '#1f2937';
+                  else if (className.includes('gray-900')) newColor = '#111827';
+                  else if (className.includes('white')) newColor = '#ffffff';
+                  else newColor = '#000000';
+                } else if (prop.includes('border')) {
+                  if (className.includes('blue-')) newColor = '#3b82f6';
+                  else if (className.includes('gray-200')) newColor = '#e5e7eb';
+                  else if (className.includes('gray-300')) newColor = '#d1d5db';
+                  else newColor = '#d1d5db';
+                }
+                
+                // 인라인 스타일로 설정
+                htmlElem.style.setProperty(prop.replace(/([A-Z])/g, '-$1').toLowerCase(), newColor, 'important');
+              }
+            });
+            
+            // background gradient에서 lab() 제거
+            const bgImage = computedStyle.backgroundImage;
+            if (bgImage && (bgImage.includes('lab') || bgImage.includes('lch') || bgImage.includes('oklch'))) {
+              htmlElem.style.backgroundImage = 'none';
+              htmlElem.style.backgroundColor = '#ffffff';
+            }
+          } catch (e) {
+            // 에러 무시하고 계속 진행
+            console.warn('Color conversion error:', e);
+          }
+        };
+        
+        // 루트 엘리먼트 처리
+        processElement(el);
+        
+        // 모든 자식 엘리먼트 처리
         const allElements = el.querySelectorAll('*');
         allElements.forEach((elem) => {
-          const htmlElem = elem as HTMLElement;
-          const computedStyle = window.getComputedStyle(htmlElem);
-          
-          // 배경색 확인 및 변환
-          const bgColor = computedStyle.backgroundColor;
-          if (bgColor && bgColor.includes('lab')) {
-            // lab() 색상을 기본 색상으로 대체
-            if (bgColor.includes('50')) {
-              htmlElem.style.backgroundColor = '#f0f9ff'; // blue-50 대체색
-            } else if (bgColor.includes('100')) {
-              htmlElem.style.backgroundColor = '#dbeafe'; // blue-100 대체색
-            } else if (bgColor.includes('600')) {
-              htmlElem.style.backgroundColor = '#2563eb'; // blue-600 대체색
-            } else {
-              htmlElem.style.backgroundColor = '#ffffff'; // 기본 흰색
-            }
-          }
-          
-          // 텍스트 색상 확인 및 변환
-          const color = computedStyle.color;
-          if (color && color.includes('lab')) {
-            // lab() 색상을 기본 색상으로 대체
-            if (color.includes('600')) {
-              htmlElem.style.color = '#2563eb'; // blue-600 대체색
-            } else if (color.includes('800')) {
-              htmlElem.style.color = '#1e3a8a'; // blue-800 대체색
-            } else {
-              htmlElem.style.color = '#000000'; // 기본 검정색
-            }
-          }
-          
-          // 테두리 색상 확인 및 변환
-          const borderColor = computedStyle.borderColor;
-          if (borderColor && borderColor.includes('lab')) {
-            htmlElem.style.borderColor = '#d1d5db'; // gray-300 대체색
-          }
+          processElement(elem as HTMLElement);
         });
       };
       
