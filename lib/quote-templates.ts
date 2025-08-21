@@ -18,6 +18,7 @@ import { DESIGN_CONTRACT_DETAILED } from './design-contract-template';
 import { PHOTOGRAPHY_CONTRACT_DETAILED } from './photography-contract-template';
 import { PUBLISHING_CONTRACT_DETAILED } from './publishing-contract-template';
 import { TRANSLATION_CONTRACT_DETAILED } from './translation-contract-template';
+import { SOFTWARE_CONTRACT_DETAILED, SOFTWARE_CONTRACT_SIMPLE } from './software-contract-template';
 
 export interface ClientData {
   name: string;

@@ -4,9 +4,10 @@ import { useState } from 'react';
 import DataExtractor from '@/components/ai-assistant/DataExtractor';
 import DocumentGenerator from '@/components/ai-assistant/DocumentGenerator';
 import TokenUsageDisplay from '@/components/ai-assistant/TokenUsageDisplay';
+import ContractTemplateSelector from '@/components/contract-templates/ContractTemplateSelector';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'extract' | 'generate'>('extract');
+  const [activeTab, setActiveTab] = useState<'extract' | 'generate' | 'contracts'>('contracts');
   
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -16,7 +17,7 @@ export default function Home() {
             Weave AI 비서
           </h1>
           <p className="text-gray-600">
-            영수증 데이터 추출 및 문서 생성 도우미
+            영수증 데이터 추출, 문서 생성 및 계약서 템플릿
           </p>
         </header>
 
@@ -44,6 +45,16 @@ export default function Home() {
               >
                 문서 생성
               </button>
+              <button
+                onClick={() => setActiveTab('contracts')}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === 'contracts'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                계약서 템플릿
+              </button>
             </div>
           </div>
           
@@ -54,10 +65,17 @@ export default function Home() {
                 console.log('추출된 데이터:', data);
               }}
             />
-          ) : (
+          ) : activeTab === 'generate' ? (
             <DocumentGenerator
               onDocumentGenerated={(document) => {
                 console.log('생성된 문서:', document);
+              }}
+            />
+          ) : (
+            <ContractTemplateSelector
+              onSelectContract={(contractId) => {
+                console.log('선택된 계약서:', contractId);
+                // 여기서 계약서 생성 페이지로 이동하거나 모달을 열 수 있습니다
               }}
             />
           )}

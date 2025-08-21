@@ -6,6 +6,9 @@ import DocumentEditor from './DocumentEditor';
 import QuotePreview from './QuotePreview';
 import { recordTokenUsage } from '@/lib/token-tracker';
 import { DocumentType, getTemplatesByType } from '@/lib/quote-templates';
+import Modal from '@/components/ui/Modal';
+import ContractTemplateSelector from '@/components/contract-templates/ContractTemplateSelector';
+import QuoteTemplateSelector from '@/components/quote-templates/QuoteTemplateSelector';
 
 interface DocumentGeneratorProps {
   onDocumentGenerated?: (document: DocumentTemplate) => void;
@@ -47,6 +50,8 @@ export default function DocumentGenerator({
   const [showPreview, setShowPreview] = useState(false);
   const [editingDocument, setEditingDocument] = useState<DocumentTemplate | null>(null);
   const [savedDocuments, setSavedDocuments] = useState<Record<string, string>>({});
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [selectedTemplateName, setSelectedTemplateName] = useState<string>('표준 템플릿');
   
   // 기본 클라이언트 데이터 (제공되지 않은 경우 샘플 데이터 사용)
   const clientData = providedClientData || {
@@ -81,6 +86,23 @@ export default function DocumentGenerator({
       setTemplateId(templateList[0].id);
     }
   }, [documentType]);
+
+  // 템플릿 선택 처리
+  const handleTemplateSelect = (templateId: string, templateName?: string) => {
+    setTemplateId(templateId);
+    if (templateName) {
+      setSelectedTemplateName(templateName);
+    }
+    setShowTemplateModal(false);
+  };
+
+  // 문서 종류 변경 시 모달 표시
+  const handleDocumentTypeChange = (type: DocumentType) => {
+    setDocumentType(type);
+    if (type === 'contract' || type === 'quote') {
+      setShowTemplateModal(true);
+    }
+  };
 
   const generateDocument = async () => {
     if (!prompt.trim()) {
@@ -219,7 +241,7 @@ export default function DocumentGenerator({
               </label>
               <select
                 value={documentType}
-                onChange={(e) => setDocumentType(e.target.value as DocumentType)}
+                onChange={(e) => handleDocumentTypeChange(e.target.value as DocumentType)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="quote">견적서</option>
@@ -233,17 +255,26 @@ export default function DocumentGenerator({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 템플릿 선택
               </label>
-              <select
-                value={templateId}
-                onChange={(e) => setTemplateId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {availableTemplates.map(template => (
-                  <option key={template.id} value={template.id}>
-                    {template.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={selectedTemplateName}
+                  readOnly
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer"
+                  onClick={() => setShowTemplateModal(true)}
+                />
+                <button
+                  onClick={() => setShowTemplateModal(true)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  템플릿 선택
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {documentType === 'quote' ? '업종별 다양한 견적서 템플릿을 선택할 수 있습니다' : 
+                 documentType === 'contract' ? '계약서 유형별 약식/상세 템플릿을 선택할 수 있습니다' :
+                 '청구서 템플릿을 선택할 수 있습니다'}
+              </p>
             </div>
 
             {/* 클라이언트 정보 표시 (읽기 전용) */}
@@ -365,6 +396,40 @@ export default function DocumentGenerator({
           </div>
         </div>
       )}
+
+      {/* 템플릿 선택 모달 */}
+      <Modal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        title={
+          documentType === 'quote' ? '견적서 템플릿 선택' : 
+          documentType === 'contract' ? '계약서 템플릿 선택' :
+          '청구서 템플릿 선택'
+        }
+        size="xl"
+      >
+        {documentType === 'quote' ? (
+          <QuoteTemplateSelector
+            onSelectTemplate={(templateId) => {
+              // 템플릿 ID로 이름 찾기
+              const templateName = availableTemplates.find(t => t.id === templateId)?.name || templateId;
+              handleTemplateSelect(templateId, templateName);
+            }}
+          />
+        ) : documentType === 'contract' ? (
+          <ContractTemplateSelector
+            onSelectContract={(contractId) => {
+              // 계약서 ID로 이름 찾기
+              const contractName = availableTemplates.find(t => t.id === contractId)?.name || contractId;
+              handleTemplateSelect(contractId, contractName);
+            }}
+          />
+        ) : (
+          <div className="p-6">
+            <p className="text-gray-600">청구서 템플릿 선택 기능은 준비 중입니다.</p>
+          </div>
+        )}
+      </Modal>
     </>
   );
 }
