@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { calculateTokenStats, clearTokenHistory } from '@/lib/token-tracker';
 
 export default function TokenUsageDisplay() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<ReturnType<typeof calculateTokenStats> | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function TokenUsageDisplay() {
           {Object.keys(stats.byModel).length > 0 && (
             <div className="mb-4">
               <h4 className="text-sm font-medium text-gray-700 mb-2">모델별 사용량</h4>
-              {Object.entries(stats.byModel).map(([model, data]: [string, any]) => (
+              {Object.entries(stats.byModel).map(([model, data]) => (
                 <div key={model} className="bg-gray-50 rounded-lg p-3 mb-2">
                   <div className="text-xs font-medium text-gray-600 mb-1">{model}</div>
                   <div className="grid grid-cols-2 gap-1 text-xs">
@@ -106,7 +106,7 @@ export default function TokenUsageDisplay() {
             <div>
               <h4 className="text-sm font-medium text-gray-700 mb-2">최근 사용 기록</h4>
               <div className="space-y-1">
-                {stats.history.map((item: any, idx: number) => (
+                {stats.history.map((item, idx) => (
                   <div key={idx} className="text-xs bg-gray-50 rounded p-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600">{item.taskType === 'extract' ? '데이터 추출' : '문서 생성'}</span>

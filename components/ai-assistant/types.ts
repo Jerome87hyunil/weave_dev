@@ -27,7 +27,7 @@ export interface ExtractedData {
   rawText?: string;
   confidence?: number;
   error?: string; // 파싱 오류 등
-  [key: string]: any; // 추가 필드를 위한 인덱스 시그니처
+  [key: string]: unknown; // 추가 필드를 위한 인덱스 시그니처
 }
 
 export interface DocumentTemplate {
@@ -46,7 +46,7 @@ export interface AIAssistantRequest {
   model?: AIModel;
   file?: File;
   prompt?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface AIAssistantResponse {

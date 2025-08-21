@@ -3,10 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { estimateTokens, calculateCost } from '@/lib/token-tracker';
 import { 
   QUOTE_TEMPLATES, 
-  applyDataToTemplate,
-  getTemplatesByType,
-  ClientData,
-  ProjectData
+  applyDataToTemplate
 } from '@/lib/quote-templates';
 
 // Gemini API 클라이언트 초기화
@@ -157,13 +154,14 @@ export async function POST(request: NextRequest) {
           }
         });
 
-      } catch (error: any) {
+      } catch (error) {
         console.error('Gemini API 오류:', error);
+        const errorMessage = error instanceof Error ? error.message : 'AI 처리 중 오류가 발생했습니다.';
         return NextResponse.json(
           { 
             success: false, 
-            error: error?.message || 'AI 처리 중 오류가 발생했습니다.',
-            details: error?.response?.data || error?.toString()
+            error: errorMessage,
+            details: error instanceof Error ? error.toString() : String(error)
           },
           { status: 500 }
         );
@@ -272,26 +270,28 @@ export async function POST(request: NextRequest) {
           }
         });
 
-      } catch (error: any) {
+      } catch (error) {
         console.error('Gemini API 오류:', error);
+        const errorMessage = error instanceof Error ? error.message : '문서 생성 중 오류가 발생했습니다.';
         return NextResponse.json(
           { 
             success: false, 
-            error: error?.message || '문서 생성 중 오류가 발생했습니다.',
-            details: error?.response?.data || error?.toString()
+            error: errorMessage,
+            details: error instanceof Error ? error.toString() : String(error)
           },
           { status: 500 }
         );
       }
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('API 라우트 오류:', error);
+    const errorMessage = error instanceof Error ? error.message : '서버 오류가 발생했습니다.';
     return NextResponse.json(
       { 
         success: false, 
-        error: error?.message || '서버 오류가 발생했습니다.',
-        details: error?.toString()
+        error: errorMessage,
+        details: error instanceof Error ? error.toString() : String(error)
       },
       { status: 500 }
     );

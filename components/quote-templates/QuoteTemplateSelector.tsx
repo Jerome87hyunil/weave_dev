@@ -159,7 +159,7 @@ export default function QuoteTemplateSelector({
         <div>
           {searchQuery && (
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              "{searchQuery}" 검색 결과 ({displayTemplates.length}개)
+              &quot;{searchQuery}&quot; 검색 결과 ({displayTemplates.length}개)
             </h3>
           )}
           {selectedCategory && !searchQuery && (

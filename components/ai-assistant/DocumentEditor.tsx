@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { DocumentTemplate } from './types';
 
@@ -70,8 +70,9 @@ export default function DocumentEditor({ document, onSave, onClose }: DocumentEd
       if (docxBlob instanceof Blob) {
         blob = docxBlob;
       } else {
-        // Buffer를 Blob으로 변환
-        blob = new Blob([docxBlob], { 
+        // Buffer를 Uint8Array로 변환 후 Blob 생성
+        const uint8Array = new Uint8Array(docxBlob as unknown as ArrayBuffer);
+        blob = new Blob([uint8Array], { 
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
         });
       }
@@ -129,7 +130,8 @@ export default function DocumentEditor({ document, onSave, onClose }: DocumentEd
     
     // 리스트
     html = html.replace(/^\* (.+)/gim, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    // s 플래그 대신 [\s\S] 사용하여 줄바꿈 포함 매칭
+    html = html.replace(/(<li>[\s\S]*?<\/li>)/, '<ul>$1</ul>');
     
     // 숫자 리스트
     html = html.replace(/^\d+\. (.+)/gim, '<li>$1</li>');

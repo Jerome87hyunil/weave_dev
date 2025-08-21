@@ -1170,7 +1170,7 @@ export function applyDataToTemplate(
   template: string,
   clientData: Partial<ClientData>,
   projectData: Partial<ProjectData>,
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, unknown>
 ): string {
   let result = template;
   

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { AIModel, TaskType, AIAssistantRequest, AIAssistantResponse, ExtractedData, DocumentTemplate } from './types';
+import { TaskType, AIAssistantResponse, ExtractedData, DocumentTemplate } from './types';
 import DocumentEditor from './DocumentEditor';
 import QuotePreview from './QuotePreview';
 import { recordTokenUsage } from '@/lib/token-tracker';
@@ -23,7 +23,7 @@ export default function AIAssistant({
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState('');
-  const [documentType, setDocumentType] = useState<'contract' | 'proposal' | 'invoice'>('contract');
+  const [documentType] = useState<'contract' | 'proposal' | 'invoice'>('contract');
   const [templateType, setTemplateType] = useState<'standard' | 'web-dev' | 'mobile-app' | 'design'>('standard');
   const [showEditor, setShowEditor] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -93,7 +93,12 @@ export default function AIAssistant({
         body: formData,
       });
 
-      const data: AIAssistantResponse & { tokenUsage?: any } = await response.json();
+      const data: AIAssistantResponse & { tokenUsage?: {
+        inputTokens: number;
+        outputTokens: number;
+        model: string;
+        cost: number;
+      } } = await response.json();
 
       if (data.success && data.data) {
         setResult(data.data);
@@ -149,7 +154,12 @@ export default function AIAssistant({
         }),
       });
 
-      const data: AIAssistantResponse & { tokenUsage?: any } = await response.json();
+      const data: AIAssistantResponse & { tokenUsage?: {
+        inputTokens: number;
+        outputTokens: number;
+        model: string;
+        cost: number;
+      } } = await response.json();
 
       if (data.success && data.data) {
         const document = data.data as DocumentTemplate;

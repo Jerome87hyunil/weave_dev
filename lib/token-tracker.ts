@@ -113,7 +113,12 @@ export function calculateTokenStats() {
     acc[h.model].cost += h.cost;
     acc[h.model].count += 1;
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, {
+    inputTokens: number;
+    outputTokens: number;
+    cost: number;
+    count: number;
+  }>);
   
   return {
     total: {
