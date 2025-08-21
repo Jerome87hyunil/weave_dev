@@ -20,10 +20,19 @@ export async function POST(request: NextRequest) {
     if (contentType?.includes('multipart/form-data')) {
       const formData = await request.formData();
       const file = formData.get('file') as File;
+      const documentType = formData.get('documentType') as string || 'auto';
 
       if (!file) {
         return NextResponse.json(
           { success: false, error: '파일이 없습니다.' },
+          { status: 400 }
+        );
+      }
+
+      // 오디오/비디오 파일 차단
+      if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
+        return NextResponse.json(
+          { success: false, error: '오디오 및 비디오 파일은 지원하지 않습니다.' },
           { status: 400 }
         );
       }
@@ -49,25 +58,51 @@ export async function POST(request: NextRequest) {
           else mimeType = 'image/jpeg'; // 기본값
         }
 
-        const prompt = `당신은 문서에서 정보를 추출하는 전문가입니다. 
-          이 문서(영수증, 청구서, 계약서 등)에서 중요한 정보를 정확하게 추출해주세요.
+        // 서류 종류별 프롬프트 생성
+        const documentTypePrompt = documentType === 'auto' 
+          ? '문서 종류를 자동으로 판별하여'
+          : `이 문서는 ${
+              documentType === 'receipt' ? '영수증' :
+              documentType === 'tax_invoice' ? '세금계산서' :
+              documentType === 'cash_receipt' ? '현금영수증' :
+              documentType === 'invoice' ? '인보이스/청구서' :
+              documentType === 'handwritten' ? '수기 계산서' :
+              '기타 비용 증빙 서류'
+            }입니다.`;
+
+        const prompt = `당신은 한국의 회계/세무 문서에서 정보를 추출하는 전문가입니다. 
+          ${documentTypePrompt} 중요한 정보를 정확하게 추출해주세요.
           
           추출한 데이터는 반드시 다음과 같은 JSON 형식으로 반환해주세요:
           {
-            "documentType": "receipt|invoice|contract|other",
+            "documentType": "receipt|tax_invoice|cash_receipt|invoice|handwritten|other",
             "date": "날짜 (YYYY-MM-DD 형식)",
-            "vendor": "업체명",
+            "vendor": "업체명/판매자명",
+            "vendorRegistrationNumber": "사업자등록번호",
             "items": [
               {
                 "name": "항목명",
                 "quantity": 수량,
-                "price": 가격
+                "unitPrice": 단가,
+                "price": 금액
               }
             ],
-            "taxAmount": 세금액,
+            "supplyAmount": 공급가액,
+            "taxAmount": 부가세액,
             "totalAmount": 총액,
+            "paymentMethod": "결제수단 (카드/현금/계좌이체 등)",
+            "cardNumber": "카드번호 마지막 4자리",
+            "approvalNumber": "승인번호",
             "additionalInfo": "기타 중요 정보"
           }
+          
+          특히 세금계산서의 경우:
+          - 공급가액과 부가세를 정확히 구분해주세요
+          - 사업자등록번호를 반드시 추출해주세요
+          
+          현금영수증의 경우:
+          - 승인번호를 반드시 추출해주세요
+          - 현금영수증 종류(소득공제용/지출증빙용)를 additionalInfo에 포함해주세요
           
           문서에서 찾을 수 없는 필드는 null로 표시하세요.
           반드시 유효한 JSON 형식으로만 응답하세요.`;

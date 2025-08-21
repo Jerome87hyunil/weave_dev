@@ -65,8 +65,19 @@ export default function DocumentEditor({ document, onSave, onClose }: DocumentEd
         margins: { top: 720, right: 720, bottom: 720, left: 720 }
       });
 
+      // Buffer인 경우 Blob으로 변환
+      let blob: Blob;
+      if (docxBlob instanceof Blob) {
+        blob = docxBlob;
+      } else {
+        // Buffer를 Blob으로 변환
+        blob = new Blob([docxBlob], { 
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+        });
+      }
+
       // 다운로드
-      const url = window.URL.createObjectURL(docxBlob);
+      const url = window.URL.createObjectURL(blob);
       const link = window.document.createElement('a');
       link.href = url;
       link.download = `${document.title}_${new Date().getTime()}.docx`;
