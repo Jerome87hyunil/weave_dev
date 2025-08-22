@@ -4,10 +4,11 @@ import { useState } from 'react';
 import DataExtractor from '@/components/ai-assistant/DataExtractor';
 import DocumentGenerator from '@/components/ai-assistant/DocumentGenerator';
 import BusinessInfoLookup from '@/components/business-info/BusinessInfoLookup';
+import DocumentRequestSystem from '@/components/email/DocumentRequestSystem';
 import TokenUsageDisplay from '@/components/ai-assistant/TokenUsageDisplay';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'extract' | 'generate' | 'business'>('extract');
+  const [activeTab, setActiveTab] = useState<'extract' | 'generate' | 'business' | 'email'>('extract');
   
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -55,6 +56,16 @@ export default function Home() {
               >
                 사업자 조회
               </button>
+              <button
+                onClick={() => setActiveTab('email')}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === 'email'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                문서 요청
+              </button>
             </div>
           </div>
           
@@ -71,8 +82,10 @@ export default function Home() {
                 console.log('생성된 문서:', document);
               }}
             />
-          ) : (
+          ) : activeTab === 'business' ? (
             <BusinessInfoLookup />
+          ) : (
+            <DocumentRequestSystem />
           )}
         </main>
 
