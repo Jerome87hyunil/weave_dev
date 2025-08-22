@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       const formData = await request.formData();
       const file = formData.get('file') as File;
       const documentType = formData.get('documentType') as string || 'auto';
+      const extractType = formData.get('extractType') as string;
 
       if (!file) {
         return NextResponse.json(
@@ -55,7 +56,71 @@ export async function POST(request: NextRequest) {
           else mimeType = 'image/jpeg'; // 기본값
         }
 
-        // 서류 종류별 프롬프트 생성
+        // 사업자등록증 추출인 경우
+        if (extractType === 'businessRegistration') {
+          const prompt = `이것은 한국의 사업자등록증입니다. 
+            사업자등록번호를 정확하게 추출해주세요.
+            
+            반드시 다음 JSON 형식으로만 응답하세요:
+            {
+              "businessNumber": "숫자만 10자리 (하이픈 제외)",
+              "companyName": "상호명",
+              "representativeName": "대표자명",
+              "businessAddress": "사업장 주소",
+              "businessType": "업태",
+              "businessItem": "업종"
+            }
+            
+            사업자등록번호는 반드시 10자리 숫자로만 반환하세요.
+            찾을 수 없는 필드는 null로 표시하세요.`;
+            
+          const result = await model.generateContent([
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: base64
+              }
+            },
+            prompt
+          ]);
+          
+          const extractedText = result.response.text();
+          
+          // 토큰 사용량 추정
+          const inputTokens = estimateTokens(prompt) + Math.ceil(base64.length * 0.75);
+          const outputTokens = estimateTokens(extractedText);
+          const cost = calculateCost(inputTokens, outputTokens, 'gemini-2.5-flash-lite');
+          
+          // JSON 파싱
+          let extractedData;
+          try {
+            const jsonMatch = extractedText.match(/```json\n?([\s\S]*?)\n?```/) || 
+                              extractedText.match(/\{[\s\S]*\}/);
+            const jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : extractedText;
+            extractedData = JSON.parse(jsonString);
+          } catch (parseError) {
+            console.error('JSON 파싱 오류:', parseError);
+            extractedData = {
+              businessNumber: null,
+              error: 'JSON 파싱 실패',
+              rawText: extractedText
+            };
+          }
+          
+          return NextResponse.json({
+            success: true,
+            result: extractedData,
+            tokenUsage: {
+              inputTokens,
+              outputTokens,
+              totalTokens: inputTokens + outputTokens,
+              cost,
+              model: 'gemini-2.5-flash-lite'
+            }
+          });
+        }
+        
+        // 기존 서류 종류별 프롬프트 생성
         const documentTypePrompt = documentType === 'auto' 
           ? '문서 종류를 자동으로 판별하여'
           : `이 문서는 ${
