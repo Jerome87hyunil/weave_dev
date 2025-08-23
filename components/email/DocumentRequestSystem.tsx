@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaEnvelope, FaFileAlt, FaPlus, FaTrash, FaPaperPlane, FaUsers, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaEnvelope, FaFileAlt, FaPlus, FaTrash, FaPaperPlane, FaUsers, FaCheck, FaTimes, FaEye } from 'react-icons/fa';
 import emailService from '@/lib/email-service';
 import { EmailRecipient, DocumentRequest, RequestedDocument } from '@/types/email';
+import EmailPreviewModal from './EmailPreviewModal';
 
 export default function DocumentRequestSystem() {
   const [activeTab, setActiveTab] = useState<'recipients' | 'requests' | 'history'>('recipients');
   const [recipients, setRecipients] = useState<EmailRecipient[]>([]);
   const [documentRequests, setDocumentRequests] = useState<DocumentRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   
   // 새 수신자 폼
   const [newRecipient, setNewRecipient] = useState({
@@ -461,14 +463,29 @@ export default function DocumentRequestSystem() {
                 </div>
               </div>
               
-              <button
-                onClick={handleSendRequest}
-                disabled={loading}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
-              >
-                <FaPaperPlane className="inline mr-2" />
-                {loading ? '발송 중...' : '문서 요청 발송'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (!newRequest.recipientId || !newRequest.projectName || !newRequest.companyName) {
+                      alert('수신자, 프로젝트명, 회사명은 필수입니다.');
+                      return;
+                    }
+                    setShowPreview(true);
+                  }}
+                  className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  <FaEye className="inline mr-2" />
+                  미리보기
+                </button>
+                <button
+                  onClick={handleSendRequest}
+                  disabled={loading}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+                >
+                  <FaPaperPlane className="inline mr-2" />
+                  {loading ? '발송 중...' : '문서 요청 발송'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -524,6 +541,20 @@ export default function DocumentRequestSystem() {
           )}
         </div>
       )}
+
+      {/* 이메일 미리보기 모달 */}
+      <EmailPreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        previewData={showPreview ? {
+          recipientId: newRequest.recipientId,
+          projectName: newRequest.projectName,
+          companyName: newRequest.companyName,
+          documents: newRequest.documents.filter(doc => doc.name),
+          message: newRequest.message,
+          dueDate: newRequest.dueDate
+        } : null}
+      />
     </div>
   );
 }
