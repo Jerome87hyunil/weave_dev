@@ -30,37 +30,37 @@ export default function EmailPreviewModal({ isOpen, onClose, previewData }: Emai
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const generatePreview = async () => {
+      if (!previewData) return;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch('/api/email/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(previewData)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setEmailContent(data);
+        } else {
+          const errorData = await response.json();
+          setError(errorData.error || '미리보기 생성 실패');
+        }
+      } catch {
+        setError('미리보기를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (isOpen && previewData) {
       generatePreview();
     }
   }, [isOpen, previewData]);
-
-  const generatePreview = async () => {
-    if (!previewData) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/email/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(previewData)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setEmailContent(data);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || '미리보기 생성 실패');
-      }
-    } catch (err) {
-      setError('미리보기를 불러오는 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePrint = () => {
     if (!emailContent) return;

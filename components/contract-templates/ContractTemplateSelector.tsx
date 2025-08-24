@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { contractCategories, ContractCategory, ContractInfo, getPopularContracts, searchContracts } from '@/lib/contract-categories';
+import { contractCategories, ContractInfo, getPopularContracts, searchContracts } from '@/lib/contract-categories';
 
 interface ContractTemplateSelectorProps {
   onSelectContract: (contractId: string) => void;

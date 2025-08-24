@@ -34,8 +34,14 @@ export async function POST(request: NextRequest) {
     const previewToken = 'PREVIEW_TOKEN_EXAMPLE';
     
     // 문서 목록 HTML 생성
+    interface Document {
+      name: string;
+      required?: boolean;
+      description?: string;
+    }
+    
     const documentListHtml = documents && documents.length > 0
-      ? documents.map((doc: any) => 
+      ? documents.map((doc: Document) => 
           `<li>${doc.name}${doc.required ? ' <strong>(필수)</strong>' : ''}${doc.description ? ` - ${doc.description}` : ''}</li>`
         ).join('')
       : '<li>요청 문서가 없습니다.</li>';

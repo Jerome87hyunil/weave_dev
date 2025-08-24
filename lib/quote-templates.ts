@@ -18,7 +18,7 @@ import { DESIGN_CONTRACT_DETAILED } from './design-contract-template';
 import { PHOTOGRAPHY_CONTRACT_DETAILED } from './photography-contract-template';
 import { PUBLISHING_CONTRACT_DETAILED } from './publishing-contract-template';
 import { TRANSLATION_CONTRACT_DETAILED } from './translation-contract-template';
-import { SOFTWARE_CONTRACT_DETAILED, SOFTWARE_CONTRACT_SIMPLE } from './software-contract-template';
+import { SOFTWARE_CONTRACT_DETAILED } from './software-contract-template';
 
 export interface ClientData {
   name: string;
@@ -1157,7 +1157,8 @@ export const QUOTE_TEMPLATES: QuoteTemplate[] = [
   DESIGN_CONTRACT_DETAILED,
   PHOTOGRAPHY_CONTRACT_DETAILED,
   PUBLISHING_CONTRACT_DETAILED,
-  TRANSLATION_CONTRACT_DETAILED
+  TRANSLATION_CONTRACT_DETAILED,
+  SOFTWARE_CONTRACT_DETAILED
 ];
 
 // 문서 종류별 템플릿 가져오기

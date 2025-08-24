@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaEnvelope, FaFileAlt, FaPlus, FaTrash, FaPaperPlane, FaUsers, FaCheck, FaTimes, FaEye } from 'react-icons/fa';
-import emailService from '@/lib/email-service';
-import { EmailRecipient, DocumentRequest, RequestedDocument } from '@/types/email';
+import { EmailRecipient, DocumentRequest } from '@/types/email';
 import EmailPreviewModal from './EmailPreviewModal';
 
 export default function DocumentRequestSystem() {
@@ -87,7 +86,7 @@ export default function DocumentRequestSystem() {
         const error = await response.json();
         alert(error.error || '수신자 추가 실패');
       }
-    } catch (error) {
+    } catch {
       alert('수신자 추가 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -112,7 +111,7 @@ export default function DocumentRequestSystem() {
     });
   };
 
-  const updateDocument = (index: number, field: string, value: any) => {
+  const updateDocument = (index: number, field: string, value: string | boolean) => {
     const updatedDocs = [...newRequest.documents];
     updatedDocs[index] = { ...updatedDocs[index], [field]: value };
     setNewRequest({ ...newRequest, documents: updatedDocs });
@@ -163,7 +162,7 @@ export default function DocumentRequestSystem() {
         const error = await response.json();
         alert(error.error || '문서 요청 발송 실패');
       }
-    } catch (error) {
+    } catch {
       alert('문서 요청 발송 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -171,7 +170,7 @@ export default function DocumentRequestSystem() {
   };
 
   const getStatusBadge = (status: string) => {
-    const badges: Record<string, { color: string; icon: JSX.Element }> = {
+    const badges: Record<string, { color: string; icon: React.ReactElement }> = {
       pending: { color: 'bg-yellow-100 text-yellow-800', icon: <FaFileAlt /> },
       sent: { color: 'bg-blue-100 text-blue-800', icon: <FaPaperPlane /> },
       completed: { color: 'bg-green-100 text-green-800', icon: <FaCheck /> },

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { quoteCategories, QuoteCategory, QuoteTemplateInfo, getPopularQuoteTemplates, searchQuoteTemplates } from '@/lib/quote-template-categories';
+import { quoteCategories, QuoteTemplateInfo, getPopularQuoteTemplates, searchQuoteTemplates } from '@/lib/quote-template-categories';
 
 interface QuoteTemplateSelectorProps {
   onSelectTemplate: (templateId: string) => void;

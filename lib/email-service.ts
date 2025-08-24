@@ -15,7 +15,7 @@ const emailStorage = {
   tokens: [] as UploadToken[],
   requests: [] as DocumentRequest[],
   templates: [] as EmailTemplate[],
-  logs: [] as any[]
+  logs: [] as { id: string; recipientId: string; timestamp: Date; status: string; message?: string }[]
 };
 
 // 기본 이메일 템플릿
@@ -231,7 +231,7 @@ class EmailService {
   }
 
   // 템플릿 렌더링
-  renderTemplate(template: EmailTemplate, variables: Record<string, any>): string {
+  renderTemplate(template: EmailTemplate, variables: Record<string, string>): string {
     let content = template.content;
     
     Object.keys(variables).forEach(key => {
@@ -249,20 +249,22 @@ class EmailService {
       console.log('Sending email:', options);
       
       // 로그 저장
+      const recipientEmail = Array.isArray(options.to) ? options.to[0] : options.to;
+      const messageId = `msg-${uuidv4()}`;
+      
       const log = {
         id: uuidv4(),
-        recipientEmail: Array.isArray(options.to) ? options.to[0] : options.to,
-        subject: options.subject,
+        recipientId: recipientEmail, // recipientId로 변경 (이메일로 대체)
+        timestamp: new Date(),
         status: 'sent',
-        messageId: `msg-${uuidv4()}`,
-        sentAt: new Date()
+        message: `Email sent: ${options.subject}`
       };
       
       emailStorage.logs.push(log);
       
       return { 
         success: true, 
-        messageId: log.messageId 
+        messageId: messageId 
       };
     } catch (error) {
       return { 
@@ -413,4 +415,5 @@ class EmailService {
   }
 }
 
-export default new EmailService();
+const emailService = new EmailService();
+export default emailService;

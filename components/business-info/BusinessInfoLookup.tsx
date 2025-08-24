@@ -223,6 +223,7 @@ export default function BusinessInfoLookup() {
         {uploadedImage && (
           <div className="mt-4 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600 mb-2">업로드된 이미지:</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={uploadedImage}
               alt="사업자등록증"

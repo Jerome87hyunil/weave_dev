@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 이메일 발송
-    let emailResult = { success: false, token: undefined as string | undefined };
+    let emailResult: { success: boolean; token?: string; error?: string } = { success: false };
     if (shouldSendEmail) {
       emailResult = await emailService.sendDocumentRequest(recipientId, documentRequest.id);
     }

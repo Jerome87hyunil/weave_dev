@@ -15,134 +15,285 @@ export default function QuotePreview({ content, title = '견적서', onPrint, on
   const [isExporting, setIsExporting] = useState(false);
   
   useEffect(() => {
+    const renderContent = () => {
+      let html = content;
+      
+      // 테이블 처리를 먼저 수행 (더 정확한 변환을 위해)
+      let inTable = false;
+      let tableContent = '';
+      
+      const lines = html.split('\n');
+      const processedLines: string[] = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        if (line.includes('|') && !line.includes('---')) {
+          if (!inTable) {
+            inTable = true;
+            tableContent = '<table class="w-full mb-6 border-collapse">\n';
+          }
+          
+          const cells = line.split('|').filter(cell => cell.trim()).map((cell) => {
+            const trimmed = cell.trim();
+            // 첫 번째 행이거나 헤더 키워드가 있으면 th로 처리
+            if (i === 0 || trimmed.includes('항목') || trimmed.includes('내용') || trimmed.includes('수량') || trimmed.includes('단가') || trimmed.includes('금액')) {
+              return `<th class="px-4 py-3 bg-blue-50 font-semibold text-left border border-gray-300 text-gray-800">${trimmed}</th>`;
+            }
+            // 금액 셀 스타일링
+            if (trimmed.match(/[\d,]+원/) || trimmed.match(/₩[\d,]+/)) {
+              return `<td class="px-4 py-3 border border-gray-300 text-right font-medium">${trimmed}</td>`;
+            }
+            return `<td class="px-4 py-3 border border-gray-300">${trimmed}</td>`;
+          });
+          
+          tableContent += `<tr>${cells.join('')}</tr>\n`;
+        } else if (line.includes('---') && inTable) {
+          // 구분선은 무시
+          continue;
+        } else {
+          if (inTable) {
+            inTable = false;
+            tableContent += '</table>\n';
+            processedLines.push(tableContent);
+            tableContent = '';
+          }
+          processedLines.push(line);
+        }
+      }
+      
+      if (inTable) {
+        tableContent += '</table>\n';
+        processedLines.push(tableContent);
+      }
+      
+      html = processedLines.join('\n');
+      
+      // 이메일 스타일 헤더 추가 (인쇄용 최적화)
+      return `
+        <style>
+          @media print {
+            body { 
+              margin: 0 !important; 
+              padding: 0 !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .container { 
+              max-width: none !important; 
+              width: 100% !important;
+              padding: 0 !important;
+            }
+            h1, h2, h3, h4 { 
+              page-break-after: avoid; 
+              break-after: avoid;
+            }
+            table { 
+              page-break-inside: avoid; 
+              break-inside: avoid;
+            }
+            tr { 
+              page-break-inside: avoid; 
+              break-inside: avoid;
+            }
+            .signature-section {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .page-break {
+              page-break-before: always;
+              break-before: always;
+            }
+          }
+          
+          /* 기본 스타일 */
+          body {
+            font-family: 'Malgun Gothic', '맑은 고딕', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.8;
+            color: #1f2937;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20mm;
+            background: white;
+          }
+          
+          .container {
+            max-width: 170mm;
+            margin: 0 auto;
+          }
+          
+          h1 {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            color: #111827;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 12px;
+          }
+          
+          h2 {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 32px 0 16px 0;
+            color: #1f2937;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+          }
+          
+          h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 24px 0 12px 0;
+            color: #374151;
+          }
+          
+          h4 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+            color: #4b5563;
+          }
+          
+          p {
+            margin: 12px 0;
+            line-height: 1.8;
+          }
+          
+          ul, ol {
+            margin: 16px 0;
+            padding-left: 32px;
+          }
+          
+          li {
+            margin: 8px 0;
+            line-height: 1.6;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+            font-size: 14px;
+            border: 1px solid #d1d5db;
+          }
+          
+          th {
+            background-color: #eff6ff !important;
+            padding: 12px !important;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #d1d5db !important;
+            color: #1e40af;
+          }
+          
+          td {
+            padding: 12px !important;
+            border: 1px solid #d1d5db !important;
+            background: white;
+          }
+          
+          tr:nth-child(even) td {
+            background-color: #f9fafb;
+          }
+          
+          tr:hover td {
+            background-color: #f3f4f6;
+          }
+          
+          strong {
+            font-weight: 600;
+            color: #111827;
+          }
+          
+          em {
+            font-style: italic;
+            color: #4b5563;
+          }
+          
+          code {
+            background-color: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+          }
+          
+          blockquote {
+            border-left: 4px solid #3b82f6;
+            margin: 20px 0;
+            padding: 12px 24px;
+            background-color: #eff6ff;
+            font-style: italic;
+          }
+          
+          hr {
+            margin: 32px 0;
+            border: none;
+            border-top: 2px solid #e5e7eb;
+          }
+          
+          .highlight {
+            background-color: #fef3c7;
+            padding: 2px 4px;
+            border-radius: 3px;
+          }
+          
+          .important {
+            color: #dc2626;
+            font-weight: 600;
+          }
+          
+          .total-row {
+            font-weight: bold;
+            font-size: 16px;
+            background-color: #eff6ff !important;
+          }
+          
+          .signature-section {
+            margin-top: 60px;
+            padding: 24px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            background-color: #f9fafb;
+          }
+          
+          .signature-line {
+            display: inline-block;
+            width: 200px;
+            border-bottom: 1px solid #6b7280;
+            margin: 0 12px;
+          }
+          
+          .footer {
+            margin-top: 60px;
+            padding-top: 24px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+          }
+          
+          .stamp-area {
+            width: 80px;
+            height: 80px;
+            border: 2px dashed #d1d5db;
+            border-radius: 50%;
+            display: inline-block;
+            text-align: center;
+            line-height: 76px;
+            color: #9ca3af;
+            font-size: 12px;
+            margin-left: 20px;
+          }
+        </style>
+        <div class="container">
+          ${html}
+        </div>
+      `;
+    };
+    
     setFormattedContent(renderContent());
   }, [content]);
-  
-  // 마크다운을 HTML로 변환하고 스타일 적용
-  const renderContent = () => {
-    let html = content;
-    
-    // 테이블 처리를 먼저 수행 (더 정확한 변환을 위해)
-    const tableLines: string[] = [];
-    let inTable = false;
-    let tableContent = '';
-    
-    const lines = html.split('\n');
-    const processedLines: string[] = [];
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      
-      if (line.includes('|') && !line.includes('---')) {
-        if (!inTable) {
-          inTable = true;
-          tableContent = '<table class="w-full mb-6 border-collapse">\n';
-        }
-        
-        const cells = line.split('|').filter(cell => cell.trim()).map((cell, idx) => {
-          const trimmed = cell.trim();
-          // 첫 번째 행이거나 헤더 키워드가 있으면 th로 처리
-          if (i === 0 || trimmed.includes('항목') || trimmed.includes('내용') || trimmed.includes('수량') || trimmed.includes('단가') || trimmed.includes('금액')) {
-            return `<th class="px-4 py-3 bg-blue-50 font-semibold text-left border border-gray-300 text-gray-800">${trimmed}</th>`;
-          }
-          // 금액 셀 스타일링
-          if (trimmed.match(/[\d,]+원/) || trimmed.match(/₩[\d,]+/)) {
-            return `<td class="px-4 py-3 border border-gray-300 text-right font-medium">${trimmed}</td>`;
-          }
-          return `<td class="px-4 py-3 border border-gray-300">${trimmed}</td>`;
-        }).join('');
-        
-        tableContent += `  <tr>${cells}</tr>\n`;
-      } else if (line.includes('---') && line.includes('|')) {
-        // 테이블 구분선 무시
-        continue;
-      } else {
-        if (inTable) {
-          inTable = false;
-          tableContent += '</table>';
-          processedLines.push(tableContent);
-          tableContent = '';
-        }
-        processedLines.push(line);
-      }
-    }
-    
-    if (inTable) {
-      tableContent += '</table>';
-      processedLines.push(tableContent);
-    }
-    
-    html = processedLines.join('\n');
-    
-    // 제목 변환 (계층별 스타일)
-    html = html.replace(/^### (.*$)/gim, (match, p1) => {
-      return `<h3 class="text-base font-semibold text-gray-700 mt-6 mb-2 pb-1 border-b border-gray-200">${p1}</h3>`;
-    });
-    
-    html = html.replace(/^## (.*$)/gim, (match, p1) => {
-      return `<h2 class="text-lg font-bold text-gray-800 mt-8 mb-4 pb-2 border-b-2 border-blue-500">${p1}</h2>`;
-    });
-    
-    html = html.replace(/^# (.*$)/gim, (match, p1) => {
-      return `<h1 class="text-2xl font-bold text-gray-900 mb-6 pb-3 border-b-4 border-blue-600">${p1}</h1>`;
-    });
-    
-    // 굵은 글씨와 레이블 처리
-    html = html.replace(/\*\*([^:]+?):\*\*/g, '<strong class="inline-block min-w-[120px] font-semibold text-gray-700">$1:</strong>');
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-gray-800">$1</strong>');
-    
-    // 리스트 처리
-    let listItems: string[] = [];
-    const finalLines: string[] = [];
-    
-    html.split('\n').forEach(line => {
-      if (line.match(/^\s*[-•]\s+(.+)/)) {
-        const match = line.match(/^\s*[-•]\s+(.+)/);
-        if (match) {
-          listItems.push(`<li class="ml-4 mb-1 text-gray-700">${match[1]}</li>`);
-        }
-      } else {
-        if (listItems.length > 0) {
-          finalLines.push(`<ul class="list-disc list-inside mb-4 space-y-1">${listItems.join('')}</ul>`);
-          listItems = [];
-        }
-        finalLines.push(line);
-      }
-    });
-    
-    if (listItems.length > 0) {
-      finalLines.push(`<ul class="list-disc list-inside mb-4 space-y-1">${listItems.join('')}</ul>`);
-    }
-    
-    html = finalLines.join('\n');
-    
-    // 일반 단락 처리
-    html = html.split('\n').map(line => {
-      if (line.trim() && !line.includes('<')) {
-        // 정보 라인 (콜론이 있는 경우)
-        if (line.includes(':') && !line.includes('http')) {
-          const [label, ...value] = line.split(':');
-          if (value.length > 0) {
-            return `<p class="mb-2 flex items-start"><span class="inline-block min-w-[120px] font-medium text-gray-700">${label}:</span><span class="text-gray-800">${value.join(':')}</span></p>`;
-          }
-        }
-        return `<p class="mb-2 text-gray-700">${line}</p>`;
-      }
-      return line;
-    }).join('\n');
-    
-    // 금액 강조
-    html = html.replace(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*원/g, '<span class="font-bold text-blue-600">$1원</span>');
-    html = html.replace(/₩\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/g, '<span class="font-bold text-blue-600">₩$1</span>');
-    
-    // 날짜 강조
-    html = html.replace(/(\d{4}[-./]\d{1,2}[-./]\d{1,2})/g, '<span class="font-medium text-gray-800">$1</span>');
-    
-    // 구분선
-    html = html.replace(/^---$/gm, '<hr class="my-6 border-t-2 border-gray-200">');
-    
-    return html;
-  };
 
   const handlePrint = () => {
     if (onPrint) {
