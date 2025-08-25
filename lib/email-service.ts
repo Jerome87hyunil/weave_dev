@@ -5,6 +5,7 @@ import {
   BulkEmailResult,
   UploadToken,
   DocumentRequest,
+  RequestedDocument,
   EmailTemplate
 } from '@/types/email';
 import { v4 as uuidv4 } from 'uuid';
@@ -383,7 +384,7 @@ class EmailService {
     documentId: string,
     status: 'uploaded' | 'approved' | 'rejected',
     dataOrReason?: string
-  ): Promise<any> {
+  ): Promise<RequestedDocument> {
     const request = emailStorage.requests.find(r => r.id === documentRequestId);
     if (!request) throw new Error('Request not found');
     
@@ -414,7 +415,7 @@ class EmailService {
   }
   
   // 문서 조회
-  async getDocument(documentRequestId: string, documentId: string): Promise<any> {
+  async getDocument(documentRequestId: string, documentId: string): Promise<RequestedDocument | null> {
     const request = emailStorage.requests.find(r => r.id === documentRequestId);
     if (!request) return null;
     

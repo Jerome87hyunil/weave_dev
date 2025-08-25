@@ -4,8 +4,6 @@ import { useState, useRef } from 'react';
 import { FaCloudUploadAlt, FaFileAlt, FaSpinner, FaTrash, FaCheck } from 'react-icons/fa';
 
 interface FileUploadDropzoneProps {
-  documentId: string;
-  documentName: string;
   onUpload: (file: File) => Promise<void>;
   disabled?: boolean;
   maxSize?: number; // in MB
@@ -13,8 +11,6 @@ interface FileUploadDropzoneProps {
 }
 
 export default function FileUploadDropzone({
-  documentId,
-  documentName,
   onUpload,
   disabled = false,
   maxSize = 10,

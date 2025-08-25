@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FaFileAlt, FaCheck, FaTimes, FaEye } from 'react-icons/fa';
-import { DocumentRequest, RequestedDocument } from '@/types/email';
+import { DocumentRequest } from '@/types/email';
 
 interface UploadedDocumentsProps {
   requests: DocumentRequest[];

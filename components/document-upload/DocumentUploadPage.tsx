@@ -209,8 +209,6 @@ export default function DocumentUploadPage({
                   
                   {doc.status === 'pending' || doc.status === 'rejected' ? (
                     <FileUploadDropzone
-                      documentId={doc.id}
-                      documentName={doc.name}
                       onUpload={(file) => handleFileUpload(doc.id, file)}
                     />
                   ) : doc.status === 'uploaded' ? (

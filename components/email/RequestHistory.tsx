@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FaEnvelope, FaEye, FaDownload } from 'react-icons/fa';
+import { FaEnvelope, FaEye } from 'react-icons/fa';
 import { DocumentRequest, EmailRecipient } from '@/types/email';
 import EmailPreviewModal from './EmailPreviewModal';
 
@@ -17,7 +17,18 @@ export default function RequestHistory({
   onRecipientsLoad
 }: RequestHistoryProps) {
   const [showPreview, setShowPreview] = useState(false);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<{
+    recipientId: string;
+    projectName: string;
+    companyName: string;
+    documents: Array<{
+      name: string;
+      description?: string;
+      required: boolean;
+    }>;
+    message?: string;
+    dueDate?: string;
+  } | null>(null);
 
   const handleViewEmail = async (request: DocumentRequest) => {
     // 수신자 정보가 없으면 로드
@@ -43,21 +54,20 @@ export default function RequestHistory({
     }
 
     setPreviewData({
-      recipient,
+      recipientId: recipient.id || '',
       projectName: request.projectName,
       companyName: request.companyName,
       message: request.message,
       dueDate: formattedDueDate,
-      documents: request.documents,
-      uploadUrl: request.uploadUrl
+      documents: request.documents.map(doc => ({
+        name: doc.name,
+        description: doc.description,
+        required: doc.required
+      }))
     });
     setShowPreview(true);
   };
 
-  const handleCopyLink = (uploadUrl: string) => {
-    navigator.clipboard.writeText(uploadUrl);
-    alert('업로드 링크가 복사되었습니다.');
-  };
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -146,15 +156,7 @@ export default function RequestHistory({
                       >
                         <FaEye />
                       </button>
-                      {request.uploadUrl && (
-                        <button
-                          onClick={() => handleCopyLink(request.uploadUrl)}
-                          className="text-green-600 hover:text-green-900"
-                          title="업로드 링크 복사"
-                        >
-                          <FaDownload />
-                        </button>
-                      )}
+                      {/* 업로드 링크는 토큰 기반으로 별도 관리됨 */}
                     </div>
                   </td>
                 </tr>

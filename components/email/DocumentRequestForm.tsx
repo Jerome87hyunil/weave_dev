@@ -16,7 +16,18 @@ export default function DocumentRequestForm({
 }: DocumentRequestFormProps) {
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<{
+    recipientId: string;
+    projectName: string;
+    companyName: string;
+    documents: Array<{
+      name: string;
+      description?: string;
+      required: boolean;
+    }>;
+    message?: string;
+    dueDate?: string;
+  } | null>(null);
   
   const [newRequest, setNewRequest] = useState({
     recipientId: '',
@@ -46,7 +57,7 @@ export default function DocumentRequestForm({
     });
   };
 
-  const updateDocument = (index: number, field: string, value: any) => {
+  const updateDocument = (index: number, field: string, value: string | boolean) => {
     const updatedDocs = [...newRequest.documents];
     updatedDocs[index] = { ...updatedDocs[index], [field]: value };
     setNewRequest({ ...newRequest, documents: updatedDocs });
@@ -70,7 +81,7 @@ export default function DocumentRequestForm({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          recipient: selectedRecipient,
+          recipientId: selectedRecipient.id,
           projectName: newRequest.projectName,
           companyName: newRequest.companyName,
           message: newRequest.message,
@@ -80,8 +91,15 @@ export default function DocumentRequestForm({
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setPreviewData(data);
+        await response.json(); // API response는 사용하지 않음
+        setPreviewData({
+          recipientId: selectedRecipient.id || '',
+          projectName: newRequest.projectName,
+          companyName: newRequest.companyName,
+          message: newRequest.message,
+          dueDate: newRequest.dueDate,
+          documents: validDocuments
+        });
         setShowPreview(true);
       }
     } catch (error) {

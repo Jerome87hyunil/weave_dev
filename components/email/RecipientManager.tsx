@@ -173,7 +173,7 @@ export default function RecipientManager({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <button
-                    onClick={() => handleDeleteRecipient(recipient.id)}
+                    onClick={() => handleDeleteRecipient(recipient.id || '')}
                     className="text-red-600 hover:text-red-900"
                   >
                     <FaTrash />

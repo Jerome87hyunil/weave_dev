@@ -18,7 +18,7 @@ export default function QuotePreview({ content, title = '견적서', onPrint, on
   useEffect(() => {
     const renderContent = () => {
       // 마크다운을 HTML로 변환
-      let html = marked(content, {
+      const html = marked(content, {
         breaks: true,
         gfm: true,
       });

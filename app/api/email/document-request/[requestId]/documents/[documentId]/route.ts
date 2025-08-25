@@ -3,9 +3,10 @@ import emailService from '@/lib/email-service';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { requestId: string; documentId: string } }
+  { params }: { params: Promise<{ requestId: string; documentId: string }> }
 ) {
   try {
+    const { requestId, documentId } = await params;
     const body = await request.json();
     const { status, rejectionReason } = body;
 
@@ -25,8 +26,8 @@ export async function PATCH(
 
     // 문서 상태 업데이트
     const updatedDocument = await emailService.updateDocumentStatus(
-      params.requestId,
-      params.documentId,
+      requestId,
+      documentId,
       status,
       rejectionReason
     );
@@ -46,12 +47,13 @@ export async function PATCH(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { requestId: string; documentId: string } }
+  { params }: { params: Promise<{ requestId: string; documentId: string }> }
 ) {
   try {
+    const { requestId, documentId } = await params;
     const document = await emailService.getDocument(
-      params.requestId,
-      params.documentId
+      requestId,
+      documentId
     );
 
     if (!document) {
