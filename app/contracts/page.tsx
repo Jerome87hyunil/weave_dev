@@ -9,7 +9,6 @@ export default function ContractsPage() {
   const handleContractSelect = (contractId: string) => {
     setSelectedContractId(contractId);
     // 여기서 실제 계약서 생성 페이지로 이동하거나 모달을 열 수 있습니다
-    console.log('선택된 계약서:', contractId);
   };
 
   return (

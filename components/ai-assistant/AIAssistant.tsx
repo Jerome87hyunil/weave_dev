@@ -473,8 +473,7 @@ export default function AIAssistant({
           setShowEditor(false);
           setShowPreview(true);
           
-          // 성공 메시지 (optional)
-          console.log('문서가 저장되었습니다.');
+          // Document saved successfully
         }}
         onClose={() => {
           setShowEditor(false);

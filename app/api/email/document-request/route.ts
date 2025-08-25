@@ -21,6 +21,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    console.log('[DEBUG] Creating document request with recipientId:', recipientId);
 
     // 문서 요청 생성
     const documentRequest = await emailService.createDocumentRequest({

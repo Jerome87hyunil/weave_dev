@@ -136,7 +136,11 @@ class EmailService {
   }
 
   async getRecipient(id: string): Promise<EmailRecipient | null> {
-    return emailStorage.recipients.find(r => r.id === id) || null;
+    console.log('[DEBUG] getRecipient called with id:', id);
+    console.log('[DEBUG] Available recipients:', emailStorage.recipients.map(r => ({ id: r.id, name: r.name })));
+    const recipient = emailStorage.recipients.find(r => r.id === id);
+    console.log('[DEBUG] Found recipient:', recipient);
+    return recipient || null;
   }
 
   async updateRecipient(id: string, data: Partial<EmailRecipient>): Promise<EmailRecipient | null> {
@@ -213,6 +217,10 @@ class EmailService {
   async getTokenByValue(tokenValue: string): Promise<UploadToken | null> {
     return emailStorage.tokens.find(t => t.token === tokenValue && !t.usedAt && new Date(t.expiresAt) > new Date()) || null;
   }
+  
+  async getTokenForRequest(documentRequestId: string): Promise<UploadToken | null> {
+    return emailStorage.tokens.find(t => t.documentRequestId === documentRequestId && !t.usedAt && new Date(t.expiresAt) > new Date()) || null;
+  }
 
   async markTokenAsUsed(tokenId: string): Promise<void> {
     const token = emailStorage.tokens.find(t => t.id === tokenId);
@@ -246,7 +254,7 @@ class EmailService {
   async sendEmail(options: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       // 실제 구현에서는 여기서 이메일 서비스 API 호출
-      console.log('Sending email:', options);
+      // Email will be sent via Resend API in production
       
       // 로그 저장
       const recipientEmail = Array.isArray(options.to) ? options.to[0] : options.to;
@@ -374,21 +382,21 @@ class EmailService {
     documentRequestId: string,
     documentId: string,
     status: 'uploaded' | 'approved' | 'rejected',
-    data?: { uploadedUrl?: string; rejectionReason?: string }
-  ): Promise<boolean> {
+    dataOrReason?: string
+  ): Promise<any> {
     const request = emailStorage.requests.find(r => r.id === documentRequestId);
-    if (!request) return false;
+    if (!request) throw new Error('Request not found');
     
     const document = request.documents.find(d => d.id === documentId);
-    if (!document) return false;
+    if (!document) throw new Error('Document not found');
     
     document.status = status;
-    if (status === 'uploaded' && data?.uploadedUrl) {
-      document.uploadedUrl = data.uploadedUrl;
+    
+    if (status === 'uploaded' && dataOrReason) {
+      document.uploadedUrl = dataOrReason;
       document.uploadedAt = new Date();
-    }
-    if (status === 'rejected' && data?.rejectionReason) {
-      document.rejectionReason = data.rejectionReason;
+    } else if (status === 'rejected' && dataOrReason) {
+      document.rejectionReason = dataOrReason;
     }
     
     request.updatedAt = new Date();
@@ -402,7 +410,15 @@ class EmailService {
       request.status = 'completed';
     }
     
-    return true;
+    return document;
+  }
+  
+  // 문서 조회
+  async getDocument(documentRequestId: string, documentId: string): Promise<any> {
+    const request = emailStorage.requests.find(r => r.id === documentRequestId);
+    if (!request) return null;
+    
+    return request.documents.find(d => d.id === documentId) || null;
   }
 
   // 문서 요청 목록 가져오기

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { marked } from 'marked';
 
 interface QuotePreviewProps {
   content: string;
@@ -16,677 +17,550 @@ export default function QuotePreview({ content, title = '견적서', onPrint, on
   
   useEffect(() => {
     const renderContent = () => {
-      let html = content;
+      // 마크다운을 HTML로 변환
+      let html = marked(content, {
+        breaks: true,
+        gfm: true,
+      });
       
-      // 테이블 처리를 먼저 수행 (더 정확한 변환을 위해)
-      let inTable = false;
-      let tableContent = '';
+      // 문서 번호 생성
+      const docNumber = `WV-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+      const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
       
-      const lines = html.split('\n');
-      const processedLines: string[] = [];
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      // 문서 타입에 따른 헤더 생성
+      const getDocumentHeader = () => {
+        const docTypeMap: { [key: string]: string } = {
+          '견적서': 'QUOTATION',
+          '계약서': 'CONTRACT',
+          '청구서': 'INVOICE'
+        };
         
-        if (line.includes('|') && !line.includes('---')) {
-          if (!inTable) {
-            inTable = true;
-            tableContent = '<table class="w-full mb-6 border-collapse">\n';
-          }
-          
-          const cells = line.split('|').filter(cell => cell.trim()).map((cell) => {
-            const trimmed = cell.trim();
-            // 첫 번째 행이거나 헤더 키워드가 있으면 th로 처리
-            if (i === 0 || trimmed.includes('항목') || trimmed.includes('내용') || trimmed.includes('수량') || trimmed.includes('단가') || trimmed.includes('금액')) {
-              return `<th class="px-4 py-3 bg-blue-50 font-semibold text-left border border-gray-300 text-gray-800">${trimmed}</th>`;
-            }
-            // 금액 셀 스타일링
-            if (trimmed.match(/[\d,]+원/) || trimmed.match(/₩[\d,]+/)) {
-              return `<td class="px-4 py-3 border border-gray-300 text-right font-medium">${trimmed}</td>`;
-            }
-            return `<td class="px-4 py-3 border border-gray-300">${trimmed}</td>`;
-          });
-          
-          tableContent += `<tr>${cells.join('')}</tr>\n`;
-        } else if (line.includes('---') && inTable) {
-          // 구분선은 무시
-          continue;
-        } else {
-          if (inTable) {
-            inTable = false;
-            tableContent += '</table>\n';
-            processedLines.push(tableContent);
-            tableContent = '';
-          }
-          processedLines.push(line);
-        }
-      }
+        return `
+          <div class="doc-header">
+            <div class="company-section">
+              <div class="company-logo">WEAVE</div>
+              <div class="company-subtitle">프리랜서를 위한 통합 비즈니스 플랫폼</div>
+            </div>
+            <h1 class="doc-title">${title}</h1>
+            <div class="doc-title-en">${docTypeMap[title] || 'DOCUMENT'}</div>
+            <div class="doc-meta">
+              <div>문서번호: ${docNumber}</div>
+              <div>발행일: ${today}</div>
+            </div>
+          </div>
+        `;
+      };
       
-      if (inTable) {
-        tableContent += '</table>\n';
-        processedLines.push(tableContent);
-      }
-      
-      html = processedLines.join('\n');
-      
-      // 이메일 스타일 헤더 추가 (인쇄용 최적화)
-      return `
+      // A4 인쇄용 클래식 디자인 스타일
+      const documentHTML = `
         <style>
+          /* A4 인쇄 설정 */
           @media print {
+            @page {
+              size: A4;
+              margin: 15mm;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
             body { 
               margin: 0 !important; 
               padding: 0 !important;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
             }
-            .container { 
-              max-width: none !important; 
-              width: 100% !important;
-              padding: 0 !important;
+            .document-wrapper { 
+              box-shadow: none !important;
+              margin: 0 !important;
             }
-            h1, h2, h3, h4 { 
-              page-break-after: avoid; 
-              break-after: avoid;
+            .no-print {
+              display: none !important;
             }
-            table { 
-              page-break-inside: avoid; 
-              break-inside: avoid;
-            }
-            tr { 
-              page-break-inside: avoid; 
-              break-inside: avoid;
-            }
-            .signature-section {
+            h1, h2, h3, h4, table, .signature-section, .info-section { 
               page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .page-break {
-              page-break-before: always;
-              break-before: always;
             }
           }
           
-          /* 기본 스타일 */
+          /* 기본 문서 스타일 */
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
           body {
-            font-family: 'Malgun Gothic', '맑은 고딕', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            line-height: 1.8;
-            color: #1f2937;
-            max-width: 210mm;
-            margin: 0 auto;
-            padding: 20mm;
+            font-family: 'Noto Sans KR', '맑은 고딕', 'Malgun Gothic', -apple-system, sans-serif;
+            font-size: 11pt;
+            line-height: 1.7;
+            color: #222;
+            background: #f5f5f5;
+          }
+          
+          .document-wrapper {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 20px auto;
             background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 30mm 25mm;
           }
           
-          .container {
-            max-width: 170mm;
-            margin: 0 auto;
+          /* 문서 헤더 디자인 */
+          .doc-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 25px;
+            border-bottom: 2px solid #333;
           }
           
+          .company-section {
+            margin-bottom: 30px;
+          }
+          
+          .company-logo {
+            font-size: 24px;
+            font-weight: 900;
+            color: #2563eb;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+          }
+          
+          .company-subtitle {
+            font-size: 10pt;
+            color: #666;
+            letter-spacing: 0.5px;
+          }
+          
+          .doc-title {
+            font-size: 28pt;
+            font-weight: 700;
+            margin: 20px 0 5px 0;
+            color: #000;
+            letter-spacing: 8px;
+          }
+          
+          .doc-title-en {
+            font-size: 14pt;
+            color: #666;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+          }
+          
+          .doc-meta {
+            font-size: 10pt;
+            color: #555;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+          }
+          
+          /* 섹션 제목 스타일 */
           h1 {
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 24px;
-            color: #111827;
-            border-bottom: 3px solid #3b82f6;
-            padding-bottom: 12px;
+            font-size: 18pt;
+            font-weight: 700;
+            margin: 30px 0 20px 0;
+            color: #000;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #333;
           }
           
           h2 {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 32px 0 16px 0;
-            color: #1f2937;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 8px;
+            font-size: 14pt;
+            font-weight: 600;
+            margin: 25px 0 15px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #666;
+            color: #222;
           }
           
           h3 {
-            font-size: 20px;
+            font-size: 12pt;
             font-weight: 600;
-            margin: 24px 0 12px 0;
-            color: #374151;
+            margin: 20px 0 10px 0;
+            color: #333;
           }
           
           h4 {
-            font-size: 18px;
+            font-size: 11pt;
             font-weight: 600;
-            margin: 20px 0 10px 0;
-            color: #4b5563;
+            margin: 15px 0 8px 0;
+            color: #444;
           }
           
+          /* 본문 스타일 */
           p {
-            margin: 12px 0;
-            line-height: 1.8;
+            margin: 10px 0;
+            line-height: 1.7;
+            text-align: justify;
           }
           
+          /* 리스트 스타일 */
           ul, ol {
-            margin: 16px 0;
-            padding-left: 32px;
+            margin: 12px 0 12px 25px;
           }
           
           li {
-            margin: 8px 0;
+            margin: 6px 0;
             line-height: 1.6;
           }
           
+          /* 테이블 스타일 */
           table {
             width: 100%;
             border-collapse: collapse;
-            margin: 24px 0;
-            font-size: 14px;
-            border: 1px solid #d1d5db;
+            margin: 25px 0;
+            font-size: 10pt;
+            border: 2px solid #333;
           }
           
           th {
-            background-color: #eff6ff !important;
-            padding: 12px !important;
-            text-align: left;
+            background: #f0f0f0;
             font-weight: 600;
-            border: 1px solid #d1d5db !important;
-            color: #1e40af;
+            text-align: left;
+            padding: 12px;
+            border: 1px solid #666;
+            font-size: 10pt;
           }
           
           td {
-            padding: 12px !important;
-            border: 1px solid #d1d5db !important;
+            padding: 10px 12px;
+            border: 1px solid #999;
             background: white;
           }
           
           tr:nth-child(even) td {
-            background-color: #f9fafb;
+            background: #fafafa;
           }
           
-          tr:hover td {
-            background-color: #f3f4f6;
+          /* 금액 표시 */
+          td:last-child, th:last-child {
+            text-align: right;
+            font-weight: 600;
           }
           
+          /* 강조 텍스트 */
           strong {
             font-weight: 600;
-            color: #111827;
+            color: #000;
           }
           
           em {
             font-style: italic;
-            color: #4b5563;
+            color: #555;
           }
           
-          code {
-            background-color: #f3f4f6;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.9em;
-          }
-          
-          blockquote {
-            border-left: 4px solid #3b82f6;
-            margin: 20px 0;
-            padding: 12px 24px;
-            background-color: #eff6ff;
-            font-style: italic;
-          }
-          
+          /* 구분선 */
           hr {
-            margin: 32px 0;
+            margin: 25px 0;
             border: none;
-            border-top: 2px solid #e5e7eb;
+            border-top: 1px solid #666;
           }
           
-          .highlight {
-            background-color: #fef3c7;
-            padding: 2px 4px;
-            border-radius: 3px;
+          /* 정보 섹션 */
+          .info-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
           }
           
-          .important {
-            color: #dc2626;
+          .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+          }
+          
+          .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 8px 0;
+          }
+          
+          .info-label {
             font-weight: 600;
+            min-width: 100px;
+            color: #444;
+          }
+          
+          .info-value {
+            color: #222;
+          }
+          
+          /* 합계 섹션 */
+          .total-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border: 2px solid #333;
+            border-radius: 4px;
           }
           
           .total-row {
-            font-weight: bold;
-            font-size: 16px;
-            background-color: #eff6ff !important;
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 11pt;
           }
           
+          .total-row.grand-total {
+            border-top: 2px solid #333;
+            margin-top: 12px;
+            padding-top: 12px;
+            font-size: 14pt;
+            font-weight: 700;
+            color: #000;
+          }
+          
+          /* 서명 섹션 */
           .signature-section {
             margin-top: 60px;
-            padding: 24px;
-            border: 2px solid #d1d5db;
-            border-radius: 8px;
-            background-color: #f9fafb;
+            display: flex;
+            justify-content: space-between;
+            padding-top: 40px;
+            border-top: 1px solid #666;
+          }
+          
+          .signature-box {
+            width: 200px;
+            text-align: center;
+          }
+          
+          .signature-label {
+            font-size: 11pt;
+            font-weight: 600;
+            margin-bottom: 60px;
+            color: #333;
           }
           
           .signature-line {
-            display: inline-block;
-            width: 200px;
-            border-bottom: 1px solid #6b7280;
-            margin: 0 12px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 8px;
+            height: 1px;
           }
           
-          .footer {
-            margin-top: 60px;
-            padding-top: 24px;
-            border-top: 2px solid #e5e7eb;
+          .signature-date {
+            font-size: 9pt;
+            color: #666;
+            margin-top: 5px;
+          }
+          
+          /* 푸터 */
+          .doc-footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #999;
             text-align: center;
-            color: #6b7280;
-            font-size: 14px;
+            font-size: 9pt;
+            color: #666;
+            line-height: 1.6;
           }
           
-          .stamp-area {
-            width: 80px;
-            height: 80px;
-            border: 2px dashed #d1d5db;
-            border-radius: 50%;
-            display: inline-block;
-            text-align: center;
-            line-height: 76px;
-            color: #9ca3af;
-            font-size: 12px;
-            margin-left: 20px;
-          }
-        </style>
-        <div class="container">
-          ${html}
-        </div>
-      `;
-    };
-    
-    setFormattedContent(renderContent());
-  }, [content]);
-
-  const handlePrint = () => {
-    if (onPrint) {
-      onPrint();
-    } else {
-      window.print();
-    }
-  };
-  
-  const handleExportPDF = async () => {
-    if (onExportPDF) {
-      onExportPDF();
-      return;
-    }
-    
-    setIsExporting(true);
-    try {
-      // 동적 import로 jsPDF와 html2canvas 로드
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-        import('jspdf'),
-        import('html2canvas')
-      ]);
-      
-      // 문서 요소 가져오기
-      const element = document.querySelector('.quote-document') as HTMLElement;
-      if (!element) {
-        throw new Error('문서 요소를 찾을 수 없습니다.');
-      }
-      
-      // 복제된 요소 생성 (원본 요소를 수정하지 않기 위해)
-      const clonedElement = element.cloneNode(true) as HTMLElement;
-      
-      // lab() 색상을 처리하기 위한 함수 (html2canvas 호환성)
-      const convertLabColors = (el: HTMLElement) => {
-        // 먼저 엘리먼트 자체 처리
-        const processElement = (htmlElem: HTMLElement) => {
-          try {
-            const computedStyle = window.getComputedStyle(htmlElem);
-            
-            // CSS 속성별로 lab() 색상 확인 및 변환
-            const properties = [
-              'backgroundColor',
-              'color', 
-              'borderColor',
-              'borderTopColor',
-              'borderRightColor', 
-              'borderBottomColor',
-              'borderLeftColor',
-              'outlineColor',
-              'textDecorationColor',
-              'fill',
-              'stroke'
-            ];
-            
-            properties.forEach(prop => {
-              const value = computedStyle.getPropertyValue(prop.replace(/([A-Z])/g, '-$1').toLowerCase());
-              if (value && (value.includes('lab') || value.includes('lch') || value.includes('oklch'))) {
-                // Tailwind 클래스 기반 색상 매핑
-                const className = htmlElem.className || '';
-                let newColor = '#000000';
-                
-                if (prop.includes('background')) {
-                  if (className.includes('blue-50')) newColor = '#eff6ff';
-                  else if (className.includes('blue-100')) newColor = '#dbeafe';
-                  else if (className.includes('blue-500')) newColor = '#3b82f6';
-                  else if (className.includes('blue-600')) newColor = '#2563eb';
-                  else if (className.includes('gray-50')) newColor = '#f9fafb';
-                  else if (className.includes('gray-100')) newColor = '#f3f4f6';
-                  else if (className.includes('gray-200')) newColor = '#e5e7eb';
-                  else newColor = '#ffffff';
-                } else if (prop.includes('color') || prop === 'fill' || prop === 'stroke') {
-                  if (className.includes('blue-600')) newColor = '#2563eb';
-                  else if (className.includes('blue-700')) newColor = '#1d4ed8';
-                  else if (className.includes('blue-800')) newColor = '#1e40af';
-                  else if (className.includes('gray-600')) newColor = '#4b5563';
-                  else if (className.includes('gray-700')) newColor = '#374151';
-                  else if (className.includes('gray-800')) newColor = '#1f2937';
-                  else if (className.includes('gray-900')) newColor = '#111827';
-                  else if (className.includes('white')) newColor = '#ffffff';
-                  else newColor = '#000000';
-                } else if (prop.includes('border')) {
-                  if (className.includes('blue-')) newColor = '#3b82f6';
-                  else if (className.includes('gray-200')) newColor = '#e5e7eb';
-                  else if (className.includes('gray-300')) newColor = '#d1d5db';
-                  else newColor = '#d1d5db';
-                }
-                
-                // 인라인 스타일로 설정
-                htmlElem.style.setProperty(prop.replace(/([A-Z])/g, '-$1').toLowerCase(), newColor, 'important');
-              }
-            });
-            
-            // background gradient에서 lab() 제거
-            const bgImage = computedStyle.backgroundImage;
-            if (bgImage && (bgImage.includes('lab') || bgImage.includes('lch') || bgImage.includes('oklch'))) {
-              htmlElem.style.backgroundImage = 'none';
-              htmlElem.style.backgroundColor = '#ffffff';
-            }
-          } catch (e) {
-            // 에러 무시하고 계속 진행
-            console.warn('Color conversion error:', e);
-          }
-        };
-        
-        // 루트 엘리먼트 처리
-        processElement(el);
-        
-        // 모든 자식 엘리먼트 처리
-        const allElements = el.querySelectorAll('*');
-        allElements.forEach((elem) => {
-          processElement(elem as HTMLElement);
-        });
-      };
-      
-      // 임시로 DOM에 추가 (계산된 스타일을 얻기 위해)
-      clonedElement.style.position = 'absolute';
-      clonedElement.style.left = '-9999px';
-      document.body.appendChild(clonedElement);
-      
-      // lab() 색상 변환
-      convertLabColors(clonedElement);
-      
-      // HTML을 캔버스로 변환
-      const canvas = await html2canvas(clonedElement, {
-        scale: 2, // 고품질을 위해 2배 스케일
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-      
-      // 임시 요소 제거
-      document.body.removeChild(clonedElement);
-      
-      // PDF 생성
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      // A4 크기 계산
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-      
-      // 첫 페이지 추가
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      
-      // 여러 페이지가 필요한 경우
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-      
-      // PDF 다운로드
-      pdf.save(`${title}_${new Date().getTime()}.pdf`);
-    } catch (error) {
-      console.error('PDF 생성 오류:', error);
-      alert('PDF 생성 중 오류가 발생했습니다.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  return (
-    <div className="bg-white h-full">
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 15mm 20mm;
+          /* 인용구 */
+          blockquote {
+            border-left: 3px solid #2563eb;
+            padding-left: 15px;
+            margin: 15px 0;
+            font-style: italic;
+            color: #555;
+            background: #f9f9f9;
+            padding: 10px 15px;
           }
           
-          * {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-            color-adjust: exact;
-          }
-          
-          html {
-            height: auto;
-          }
-          
-          body {
-            margin: 0;
-            padding: 0;
-            font-size: 11pt;
-            height: auto;
-          }
-          
-          .no-print {
-            display: none !important;
-          }
-          
-          .quote-document {
-            width: auto !important;
-            min-height: auto !important;
-            height: auto !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            page-break-inside: avoid;
-            position: relative !important;
-          }
-          
-          /* 테이블 인쇄 최적화 */
-          table {
-            width: 100%;
-            page-break-inside: avoid;
-            border-collapse: collapse;
-          }
-          
-          thead {
-            display: table-header-group;
-          }
-          
-          tr {
-            page-break-inside: avoid;
-          }
-          
-          td, th {
-            padding: 6px 8px;
+          /* 코드 */
+          code {
+            font-family: 'Courier New', monospace;
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
             font-size: 10pt;
           }
           
-          /* 제목 페이지 분리 방지 */
-          h1, h2, h3, h4, h5, h6 {
-            page-break-after: avoid;
-            page-break-inside: avoid;
+          pre {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
           }
           
-          h1 {
-            font-size: 16pt;
-            margin: 8pt 0;
+          pre code {
+            background: none;
+            border: none;
+            padding: 0;
           }
           
-          h2 {
-            font-size: 12pt;
-            margin: 6pt 0;
+          /* 반응형 조정 */
+          @media screen and (max-width: 800px) {
+            .document-wrapper {
+              width: 100%;
+              margin: 0;
+              padding: 20px;
+              box-shadow: none;
+            }
+            
+            .signature-section {
+              flex-direction: column;
+              gap: 40px;
+            }
+            
+            .signature-box {
+              width: 100%;
+            }
+            
+            .info-grid {
+              grid-template-columns: 1fr;
+            }
           }
-          
-          h3 {
-            font-size: 11pt;
-            margin: 4pt 0;
-          }
-          
-          p, li {
-            font-size: 9pt;
-            line-height: 1.3;
-            margin: 2pt 0;
-          }
-          
-          /* 서명란 페이지 분리 방지 */
-          .signature-area {
-            page-break-inside: avoid;
-            margin-top: 15pt;
-          }
-          
-          /* 페이지 푸터 위치 고정 */
-          .page-footer {
-            display: none !important;
-          }
-          
-          /* 배경색 및 테두리 유지 */
-          .bg-blue-50, .bg-gray-50 {
-            background-color: #f0f4f8 !important;
-          }
-          
-          .border, .border-gray-300 {
-            border-color: #d1d5db !important;
-          }
-        }
-        
-        .quote-document {
-          width: 210mm;
-          min-height: 297mm;
-          padding: 20mm 25mm;
-          margin: 0 auto 20px;
-          background: white;
-          box-shadow: 0 0 20px rgba(0,0,0,0.1);
-          position: relative;
-          display: flex;
-          flex-direction: column;
-        }
-        
-        @media screen and (max-width: 210mm) {
-          .quote-document {
-            width: 100%;
-            padding: 20px;
-          }
-        }
-      `}</style>
-      
-      {/* 액션 버튼 (인쇄 시 숨김) */}
-      <div className="no-print sticky top-0 z-10 bg-white border-b px-6 py-3 flex justify-between items-center shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800">견적서 미리보기</h2>
-        <div className="flex gap-3">
-          <button
-            onClick={handlePrint}
-            className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            인쇄
-          </button>
-          <button
-            onClick={handleExportPDF}
-            disabled={isExporting}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
-          >
-            {isExporting ? (
-              <>
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                PDF 생성 중...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-                PDF 저장
-              </>
-            )}
-          </button>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              닫기
-            </button>
-          )}
+        </style>
+        <div class="document-wrapper">
+          ${getDocumentHeader()}
+          <div class="document-content">
+            ${html}
+          </div>
+          <div class="signature-section">
+            <div class="signature-box">
+              <div class="signature-label">공급자</div>
+              <div class="signature-line"></div>
+              <div class="signature-date">(서명/날인)</div>
+            </div>
+            <div class="signature-box">
+              <div class="signature-label">수신자</div>
+              <div class="signature-line"></div>
+              <div class="signature-date">(서명/날인)</div>
+            </div>
+          </div>
+          <div class="doc-footer">
+            <p><strong>WEAVE</strong> - Professional Business Platform for Freelancers</p>
+            <p>www.weave.co.kr | support@weave.co.kr | 02-1234-5678</p>
+            <p>서울특별시 강남구 테헤란로 123, 위브타워 15층</p>
+          </div>
         </div>
-      </div>
+      `;
       
-      {/* A4 문서 영역 */}
-      <div className="quote-document" id="quote-content">
-        {/* 회사 로고/헤더 영역 */}
-        <div className="mb-8 pb-4 border-b-2 border-gray-200">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="w-32 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg mb-2 flex items-center justify-center">
-                <span className="text-white font-bold text-xl">WEAVE</span>
+      return documentHTML;
+    };
+    
+    const formatted = renderContent();
+    setFormattedContent(formatted);
+  }, [content, title]);
+  
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>${title}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+          </head>
+          <body>
+            ${formattedContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    }
+    onPrint?.();
+  };
+  
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      // PDF export would be implemented here
+      // For now, we'll use the browser's print to PDF functionality
+      handlePrint();
+    } finally {
+      setIsExporting(false);
+    }
+    onExportPDF?.();
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[92vh] overflow-hidden flex flex-col">
+        {/* 모던한 상단 헤더 */}
+        <div className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/10"></div>
+          <div className="relative px-12 py-8 flex justify-between items-center">
+            {/* 왼쪽: 제목 영역 */}
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl"></div>
+                <div className="relative p-3.5 bg-white/10 rounded-2xl backdrop-blur-md border border-white/20">
+                  <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
               </div>
-              <p className="text-sm text-gray-600">프리랜서를 위한 통합 비즈니스 플랫폼</p>
+              <div>
+                <h2 className="text-[26px] font-bold text-white tracking-tight">
+                  {title} 미리보기
+                </h2>
+                <p className="text-[15px] text-blue-100 mt-1">문서를 확인하고 인쇄하거나 저장할 수 있습니다</p>
+              </div>
             </div>
-            <div className="text-right">
-              <h1 className="text-3xl font-bold text-gray-800 mb-1">{title}</h1>
-              <p className="text-sm text-gray-500">문서번호: WV-{new Date().getFullYear()}-{String(Math.floor(Math.random() * 10000)).padStart(4, '0')}</p>
-              <p className="text-sm text-gray-500">발행일: {new Date().toLocaleDateString('ko-KR')}</p>
+            
+            {/* 오른쪽: 액션 버튼들 */}
+            <div className="flex items-center gap-4">
+              {/* 인쇄 버튼 */}
+              <button
+                onClick={handlePrint}
+                className="group relative px-8 py-4 bg-white text-blue-700 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden min-w-[140px]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative flex items-center justify-center gap-3">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span className="text-[16px] font-semibold">인쇄</span>
+                </div>
+              </button>
+              
+              {/* PDF 저장 버튼 */}
+              <button
+                onClick={handleExportPDF}
+                disabled={isExporting}
+                className="group relative px-8 py-4 bg-emerald-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:bg-emerald-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden min-w-[160px]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative flex items-center justify-center gap-3">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-[16px] font-semibold">{isExporting ? 'PDF 생성 중...' : 'PDF 저장'}</span>
+                </div>
+              </button>
+              
+              {/* 구분선 */}
+              <div className="h-12 w-px bg-white/20 mx-3"></div>
+              
+              {/* 닫기 버튼 */}
+              <button
+                onClick={onClose}
+                className="group relative p-4 bg-white/10 hover:bg-white/20 rounded-xl backdrop-blur-md border border-white/20 transition-all duration-200"
+                aria-label="닫기"
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
-        
-        {/* 문서 내용 */}
-        <div 
-          className="prose prose-gray max-w-none"
-          dangerouslySetInnerHTML={{ __html: formattedContent }}
-        />
-        
-        {/* 서명 영역 */}
-        <div className="mt-12 pt-6 border-t-2 border-gray-200 signature-area print:mt-8 print:pt-4">
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <p className="text-sm font-semibold text-gray-700 mb-2 print:text-xs">공급자</p>
-              <div className="h-16 border-b-2 border-gray-300 mb-2 print:h-12"></div>
-              <p className="text-sm text-gray-600 print:text-xs">(서명/날인)</p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-700 mb-2 print:text-xs">수신자</p>
-              <div className="h-16 border-b-2 border-gray-300 mb-2 print:h-12"></div>
-              <p className="text-sm text-gray-600 print:text-xs">(서명/날인)</p>
-            </div>
+        {/* 문서 프리뷰 영역 */}
+        <div className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-gray-100 p-8">
+          <div className="max-w-[210mm] mx-auto">
+            <div dangerouslySetInnerHTML={{ __html: formattedContent }} />
           </div>
-        </div>
-        
-        {/* 페이지 푸터 */}
-        <div className="page-footer mt-auto pt-8 text-center">
-          <p className="text-xs text-gray-400">Weave - Professional Business Platform for Freelancers</p>
-          <p className="text-xs text-gray-400 mt-1">www.weave.co.kr | support@weave.co.kr | 02-1234-5678</p>
         </div>
       </div>
     </div>

@@ -40,6 +40,7 @@ export default function DocumentGenerator({
   className = ''
 }: DocumentGeneratorProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingTime, setProcessingTime] = useState(0);
   const [result, setResult] = useState<DocumentTemplate | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
@@ -112,6 +113,12 @@ export default function DocumentGenerator({
 
     setIsProcessing(true);
     setError(null);
+    setProcessingTime(0);
+    
+    // 예상 소요시간 카운터 시작
+    const timer = setInterval(() => {
+      setProcessingTime(prev => prev + 1);
+    }, 1000);
 
     try {
       const response = await fetch('/api/ai-assistant', {
@@ -164,7 +171,9 @@ export default function DocumentGenerator({
       setError('서버 연결에 실패했습니다.');
       console.error(err);
     } finally {
+      clearInterval(timer);
       setIsProcessing(false);
+      setProcessingTime(0);
     }
   };
 
@@ -327,12 +336,30 @@ export default function DocumentGenerator({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  생성 중...
+                  생성 중... ({processingTime}초 / 약 10-15초 소요)
                 </span>
               ) : (
                 '문서 생성하기'
               )}
             </button>
+            
+            {/* 처리 중 진행 상태 표시 */}
+            {isProcessing && (
+              <div className="mt-3 space-y-2">
+                <div className="text-sm text-gray-600 text-center">
+                  AI가 문서를 생성하고 있습니다. 잠시만 기다려 주세요.
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${Math.min((processingTime / 15) * 100, 95)}%` }}
+                  />
+                </div>
+                <div className="text-xs text-gray-500 text-center">
+                  💡 템플릿 유형과 내용 복잡도에 따라 시간이 달라질 수 있습니다.
+                </div>
+              </div>
+            )}
 
             {/* 에러 메시지 */}
             {error && (

@@ -30,8 +30,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 임시 토큰 (미리보기용)
-    const previewToken = 'PREVIEW_TOKEN_EXAMPLE';
+    // 실제 문서 요청이 있는지 확인하고 토큰 가져오기
+    let previewToken = 'PREVIEW_TOKEN_EXAMPLE';
+    
+    // 기존 문서 요청 찾기
+    const existingRequests = await emailService.getDocumentRequests();
+    const existingRequest = existingRequests.find(
+      req => req.recipientId === recipientId && 
+             req.projectName === projectName && 
+             req.companyName === companyName
+    );
+    
+    if (existingRequest) {
+      // 기존 토큰 찾기
+      const existingToken = await emailService.getTokenForRequest(existingRequest.id);
+      if (existingToken) {
+        previewToken = existingToken.token;
+      }
+    }
     
     // 문서 목록 HTML 생성
     interface Document {
